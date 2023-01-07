@@ -27,7 +27,7 @@
     <arg name="output_image_topic"      default="/yolov5/image_out"/>
 
 
-    <node pkg="yolov5_ros" name="detector" type="detector.py" output="screen">
+    <node pkg="camera_lidar_fusion" name="detector" type="detector.py" output="screen">
         <param name="weights"               value="$(arg weights)"/>
         <param name="data"                  value="$(arg data)"/>
         <param name="confidence_threshold"  value="$(arg confidence_threshold)"/>

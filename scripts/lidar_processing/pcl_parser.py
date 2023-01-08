@@ -11,7 +11,7 @@ from sensor_msgs.msg import PointCloud2
 class pcl_data_calc():
     def __init__(self):
         rospy.init_node('PclParser', anonymous=False)
-        rospy.Subscriber('/pointcloud/radar', PointCloud2, self.pcl_callback)
+        rospy.Subscriber('/pointcloud/os1_pc2', PointCloud2, self.pcl_callback)
 
         self.pub = rospy.Publisher('/pointcloud/filtered', PointCloud2, queue_size=1)
     
@@ -26,20 +26,9 @@ class pcl_data_calc():
         cloud = pcl_helper.ros_to_pcl(data)
         if cloud.size > 0:
 
-            # ROI setting
-            cloud = self.do_passthrough(cloud, 'y', 1.75, 5)
-
-            if cloud.size > 0:
-                # Removing noise
-                cloud = pcl_helper.XYZRGB_to_XYZ(cloud)
-                cloud = self.do_moving_least_squares(cloud)
-                
-                if cloud.size > 0:
-                    cloud = self.do_statistical_outlier_filtering(cloud, self.mean_k, self.thresh)
-                    cloud, _ = self.do_euclidean_clustering(cloud)
-                # Removing ground
-                # _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.05)
-                cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
+            # Removing ground
+            _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.05)
+            cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
             
             # Convert pcl -> sensor_msgs/PointCloud2
             
@@ -110,21 +99,21 @@ class pcl_data_calc():
 
 
     
-    # def do_ransac_plane_normal_segmentation(self, pcl_data, input_max_distance):
+    def do_ransac_plane_normal_segmentation(self, pcl_data, input_max_distance):
 
-    #     segmenter = pcl_data.make_segmenter_normals(ksearch=50)
-    #     segmenter.set_optimize_coefficients(True)
-    #     segmenter.set_model_type(pcl.SACMODEL_NORMAL_PLANE)  #pcl_sac_model_plane
-    #     segmenter.set_normal_distance_weight(0.1)
-    #     segmenter.set_method_type(pcl.SAC_RANSAC) #pcl_sac_ransac
-    #     segmenter.set_max_iterations(1000)
-    #     segmenter.set_distance_threshold(input_max_distance) #0.03)  #max_distance
-    #     indices, coefficients = segmenter.segment()
+        segmenter = pcl_data.make_segmenter_normals(ksearch=50)
+        segmenter.set_optimize_coefficients(True)
+        segmenter.set_model_type(pcl.SACMODEL_NORMAL_PLANE)  #pcl_sac_model_plane
+        segmenter.set_normal_distance_weight(0.1)
+        segmenter.set_method_type(pcl.SAC_RANSAC) #pcl_sac_ransac
+        segmenter.set_max_iterations(1000)
+        segmenter.set_distance_threshold(input_max_distance) #0.03)  #max_distance
+        indices, coefficients = segmenter.segment()
 
-    #     inliers = pcl_data.extract(indices, negative=False)
-    #     outliers = pcl_data.extract(indices, negative=True)
+        inliers = pcl_data.extract(indices, negative=False)
+        outliers = pcl_data.extract(indices, negative=True)
 
-    #     return indices, inliers, outliers
+        return indices, inliers, outliers
 
     
     

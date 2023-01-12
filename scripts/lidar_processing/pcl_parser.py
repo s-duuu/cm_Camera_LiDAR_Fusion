@@ -28,12 +28,20 @@ class pcl_data_calc():
 
             # Removing ground
             _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.15)
+
+            cloud = pcl_helper.XYZRGB_to_XYZ(cloud)
+            
+            # Clustering
+            self.do_euclidean_clustering(cloud)
+
             cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
             
             # Convert pcl -> sensor_msgs/PointCloud2
-            
             new_data = pcl_helper.pcl_to_ros(cloud)
+
+            # Publish filtered LiDAR pointcloud data (sensor_msgs/pointcloud2)
             self.pub.publish(new_data)
+
             rospy.loginfo("Filtered Point Published")
         
         else:
@@ -57,7 +65,30 @@ class pcl_data_calc():
         return indices, inliers, outliers
 
     
-    
+    def do_euclidean_clustering(self, pcl_data):
+
+        tree = pcl_data.make_kdtree()
+
+        ec = pcl_data.make_EuclideanClusterExtraction()
+        ec.set_ClusterTolerance(0.2) #0.02
+        ec.set_MinClusterSize(10)
+        ec.set_MaxClusterSize(250)
+        ec.set_SearchMethod(tree)
+        cluster_indices = ec.Extract()
+
+        color_cluster_point_list = []
+
+        for j, indices in enumerate(cluster_indices):
+            for i, indice in enumerate(indices):
+                color_cluster_point_list.append([pcl_data[indice][0],
+                                                pcl_data[indice][1],
+                                                pcl_data[indice][2]
+                                                ])
+
+        cluster_cloud = pcl.PointCloud()
+        cluster_cloud.from_list(color_cluster_point_list)
+
+        return cluster_cloud,cluster_indices
 
 if __name__ == '__main__':
     try:

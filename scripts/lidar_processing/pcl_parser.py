@@ -27,7 +27,7 @@ class pcl_data_calc():
         if cloud.size > 0:
 
             # Removing ground
-            _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.05)
+            _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.15)
             cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
             
             # Convert pcl -> sensor_msgs/PointCloud2
@@ -39,65 +39,6 @@ class pcl_data_calc():
         else:
             pass
     
-    def do_passthrough(self, pcl_data, filter_axis, axis_min, axis_max):
-        
-        passthrough = pcl_data.make_passthrough_filter()
-        passthrough.set_filter_field_name(filter_axis)
-        passthrough.set_filter_limits(axis_min, axis_max)
-
-        return passthrough.filter()
-    
-    
-    def do_statistical_outlier_filtering(self, pcl_data,mean_k,thresh):
-        
-        outlier_filter = pcl_data.make_statistical_outlier_filter()
-        outlier_filter.set_mean_k(mean_k)
-        outlier_filter.set_std_dev_mul_thresh(thresh)
-
-        return outlier_filter.filter()
-    
-    def do_euclidean_clustering(self, pcl_data):
-
-        tree = pcl_data.make_kdtree()
-
-        ec = pcl_data.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.01)
-        ec.set_MinClusterSize(1)
-        ec.set_MaxClusterSize(4)
-        ec.set_SearchMethod(tree)
-        cluster_indices = ec.Extract()
-
-        color_cluster_point_list = []
-
-        for j, indices in enumerate(cluster_indices):
-            for i, indice in enumerate(indices):
-                color_cluster_point_list.append([pcl_data[indice][0],
-                                                pcl_data[indice][1],
-                                                pcl_data[indice][2]
-                                                ])
-
-        cluster_cloud = pcl.PointCloud()
-        cluster_cloud.from_list(color_cluster_point_list)
-
-        return cluster_cloud,cluster_indices
-
-
-
-    def do_moving_least_squares(self, pcl_data):
-        
-        tree = pcl_data.make_kdtree()
-
-        mls = pcl_data.make_moving_least_squares()
-        mls.set_Compute_Normals(True)
-        mls.set_polynomial_fit(True)
-        mls.set_Search_Method(tree)
-        mls.set_search_radius(100)
-        # print('set parameters')
-        mls_points = mls.process()
-
-        return mls_points
-
-
     
     def do_ransac_plane_normal_segmentation(self, pcl_data, input_max_distance):
 

@@ -166,7 +166,7 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/detect.py src/detector.py src/fusion.py src/matrix_fusion.py scripts/lidar_processing/pcl_parser.py
+  src/detect.py src/detector.py src/fusion.py src/matrix_fusion.py src/tracker.py scripts/lidar_processing/pcl_parser.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

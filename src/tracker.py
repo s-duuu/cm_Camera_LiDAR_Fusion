@@ -217,7 +217,7 @@ class Sort(object):
     rospy.init_node('sort', anonymous=True)
     self.subb = rospy.Subscriber('yolov5/detections', BoundingBoxes, self.boxcallback)
     self.pubb = rospy.Publisher('tracked_boxes', BoundingBoxes, queue_size=50)
-    self.rate = rospy.Rate(30)
+    self.rate = rospy.Rate(50)
     display = rospy.get_param("/display", True)
     max_age = rospy.get_param("/max_age", max_age)
     min_hits = rospy.get_param("/min_hits", min_hits)
@@ -352,8 +352,10 @@ if __name__ == '__main__':
                 r.header.stamp = rospy.Time.now()
                 mot_tracker.pubb.publish(r)
                 print(cycle_time)
-                
-            mot_tracker.rate.sleep()
+
+            # print("-=-----------여기까진됨_------------------")
+            rospy.spin()    
+            # mot_tracker.rate.sleep()
 
         except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
             sys.exit(0)

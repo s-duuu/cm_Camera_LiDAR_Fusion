@@ -32,7 +32,8 @@ class pcl_data_calc():
             cloud = pcl_helper.XYZRGB_to_XYZ(cloud)
             
             # Clustering
-            self.do_euclidean_clustering(cloud)
+            cloud, indices = self.do_euclidean_clustering(cloud)
+            # self.do_euclidean_clustering(cloud)
 
             cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
             
@@ -70,9 +71,9 @@ class pcl_data_calc():
         tree = pcl_data.make_kdtree()
 
         ec = pcl_data.make_EuclideanClusterExtraction()
-        ec.set_ClusterTolerance(0.2) #0.02
+        ec.set_ClusterTolerance(0.9) #0.02
         ec.set_MinClusterSize(10)
-        ec.set_MaxClusterSize(250)
+        ec.set_MaxClusterSize(5000)
         ec.set_SearchMethod(tree)
         cluster_indices = ec.Extract()
 
@@ -93,6 +94,7 @@ class pcl_data_calc():
 if __name__ == '__main__':
     try:
         pcl_data_calc()
+        print("=============여기까진됨----============")
         rospy.spin()
     
     except rospy.ROSInterruptException:

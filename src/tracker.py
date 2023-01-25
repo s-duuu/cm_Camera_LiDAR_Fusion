@@ -217,7 +217,7 @@ class Sort(object):
     rospy.init_node('sort', anonymous=True)
     self.subb = rospy.Subscriber('yolov5/detections', BoundingBoxes, self.boxcallback)
     self.pubb = rospy.Publisher('tracked_boxes', BoundingBoxes, queue_size=50)
-    self.rate = rospy.Rate(50)
+    self.rate = rospy.Rate(1000)
     display = rospy.get_param("/display", True)
     max_age = rospy.get_param("/max_age", max_age)
     min_hits = rospy.get_param("/min_hits", min_hits)
@@ -260,6 +260,44 @@ class Sort(object):
         dets.append(np.array([bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax, bbox.probability]))
     self.dets = np.array(dets)
     self.bbox_checkin=1
+
+    start_time = time.time()
+    if self.bbox_checkin==1:
+        trackers = self.update(self.dets)
+        self.bbox_checkin=0
+    else:
+        trackers = self.update(np.empty((0,5)))
+    
+    r = BoundingBoxes()
+    for d in range(len(trackers)):
+        rb = BoundingBox()
+        rb.probability=1
+        rb.xmin = int(trackers[d,0])
+        rb.ymin = int(trackers[d,1])
+        rb.xmax = int(trackers[d,2])
+        rb.ymax = int(trackers[d,3])
+        rb.id = int(trackers[d,4])
+        rb.Class = 'tracked'
+        r.bounding_boxes.append(rb)
+        if self.img_in==1 and self.display:
+            res = trackers[d].astype(np.int32)
+            rgb=colours[res[4]%32,:]*255
+            cv2.rectangle(self.img, (res[0],res[1]), (res[2],res[3]), (rgb[0],rgb[1],rgb[2]), 6)
+            cv2.putText(self.img, "ID : %d"%(res[4]), (res[0],res[1]), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (200,85,200), 6)
+    if self.img_in==1 and self.display:
+      try :
+          cv2.imshow("Tracker", self.img) 
+          cv2.waitKey(1)
+          self.image = self.bridge.cv2_to_imgmsg(self.img, "bgr8")
+          self.image.header.stamp = rospy.Time.now()
+          self.pubimage.publish(self.image)
+      except CvBridgeError as e:
+          pass
+    cycle_time = time.time() - start_time
+    if len(r.bounding_boxes)>0: #prevent empty box
+        r.header.stamp = rospy.Time.now()
+        self.pubb.publish(r)
+        print(cycle_time)
     return
 
   def update(self, dets=np.empty((0, 5))):
@@ -306,58 +344,7 @@ class Sort(object):
       return np.concatenate(ret)
     return np.empty((0,5))
 
-
-
-
-
 if __name__ == '__main__':
     colours = np.random.rand(32, 3) #used only for display
     mot_tracker = Sort(max_age=200, min_hits=1) #create instance of the SORT tracker
-
-    while True:
-        try:
-            start_time = time.time()
-            if mot_tracker.bbox_checkin==1:
-                trackers = mot_tracker.update(mot_tracker.dets)
-                mot_tracker.bbox_checkin=0
-            else:
-                trackers = mot_tracker.update(np.empty((0,5)))
-
-            r = BoundingBoxes()
-            for d in range(len(trackers)):
-                rb = BoundingBox()
-                rb.probability=1
-                rb.xmin = int(trackers[d,0])
-                rb.ymin = int(trackers[d,1])
-                rb.xmax = int(trackers[d,2])
-                rb.ymax = int(trackers[d,3])
-                rb.id = int(trackers[d,4])
-                rb.Class = 'tracked'
-                r.bounding_boxes.append(rb)
-                if mot_tracker.img_in==1 and mot_tracker.display:
-                    res = trackers[d].astype(np.int32)
-                    rgb=colours[res[4]%32,:]*255
-                    cv2.rectangle(mot_tracker.img, (res[0],res[1]), (res[2],res[3]), (rgb[0],rgb[1],rgb[2]), 6)
-                    cv2.putText(mot_tracker.img, "ID : %d"%(res[4]), (res[0],res[1]), cv2.FONT_HERSHEY_SIMPLEX, 1.6, (200,85,200), 6)
-            if mot_tracker.img_in==1 and mot_tracker.display:
-                try : 
-                    mot_tracker.image = mot_tracker.bridge.cv2_to_imgmsg(mot_tracker.img, "bgr8")
-                    mot_tracker.image.header.stamp = rospy.Time.now()
-                    mot_tracker.pubimage.publish(mot_tracker.image)
-                except CvBridgeError as e:
-                    pass
-                
-            cycle_time = time.time() - start_time
-            if len(r.bounding_boxes)>0: #prevent empty box
-                r.header.stamp = rospy.Time.now()
-                mot_tracker.pubb.publish(r)
-                print(cycle_time)
-
-            # print("-=-----------여기까진됨_------------------")
-            rospy.spin()    
-            # mot_tracker.rate.sleep()
-
-        except (rospy.ROSInterruptException, SystemExit, KeyboardInterrupt):
-            sys.exit(0)
-#        except:
-#            pass
+    rospy.spin()

@@ -94,7 +94,6 @@ class pcl_data_calc():
 if __name__ == '__main__':
     try:
         pcl_data_calc()
-        print("=============여기까진됨----============")
         rospy.spin()
     
     except rospy.ROSInterruptException:

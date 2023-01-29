@@ -1,15 +1,20 @@
-a = {"index": None, "distance": None, "speed": None}
+import math
+import time
 
-a["index"] = 3
 
-b = {"index": None, "distance": None, "speed": None}
+start = time.time()
 
-b["distance"] = 10
+a = []
 
-dic_list = []
+num = 2
 
-dic_list.append(a)
+for i in range(num):
+    a.append(i+1)
 
-dic_list.append(b)
 
-print(dic_list[0]["index"])
+for element in a:
+    print(a.index(element))
+
+end = time.time()
+
+print(end - start)

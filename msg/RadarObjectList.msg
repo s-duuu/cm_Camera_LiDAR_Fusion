@@ -1,1 +1,0 @@
-RadarObject[] RadarObjectList

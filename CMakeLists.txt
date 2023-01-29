@@ -53,8 +53,8 @@ add_message_files(
   FILES
   BoundingBox.msg
   BoundingBoxes.msg
-  RadarObject.msg
-  RadarObjectList.msg
+  LidarObject.msg
+  LidarObjectList.msg
 )
 
 ## Generate services in the 'srv' folder

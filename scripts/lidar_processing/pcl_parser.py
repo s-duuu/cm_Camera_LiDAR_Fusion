@@ -7,6 +7,8 @@ import pcl_helper
 
 import sensor_msgs.point_cloud2 as pc2
 from sensor_msgs.msg import PointCloud2
+from camera_lidar_fusion.msg import LidarObject
+from camera_lidar_fusion.msg import LidarObjectList
 
 class pcl_data_calc():
     def __init__(self):
@@ -14,6 +16,7 @@ class pcl_data_calc():
         rospy.Subscriber('/pointcloud/os1_pc2', PointCloud2, self.pcl_callback)
 
         self.pub = rospy.Publisher('/pointcloud/filtered', PointCloud2, queue_size=1)
+        self.lidar_object_pub = rospy.Publisher('lidar_objects', LidarObjectList, queue_size=1)
     
     def pcl_callback(self, data):
         
@@ -36,6 +39,23 @@ class pcl_data_calc():
             # self.do_euclidean_clustering(cloud)
 
             cloud = pcl_helper.XYZ_to_XYZRGB(cloud, (255,255,255))
+
+            Objects = LidarObjectList()
+
+            for filtered_data in cloud:
+                x = filtered_data[0]
+                y = filtered_data[1]
+                z = filtered_data[2]
+
+                object_variable = LidarObject()
+                object_variable.x = x
+                object_variable.y = y
+                object_variable.z = z
+
+                Objects.LidarObjectList.append(object_variable)
+
+            
+            self.lidar_object_pub.publish(Objects)
             
             # Convert pcl -> sensor_msgs/PointCloud2
             new_data = pcl_helper.pcl_to_ros(cloud)

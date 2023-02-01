@@ -45,6 +45,7 @@ class Yolov5Detector:
         self.classes = rospy.get_param("~classes", None)
         self.line_thickness = rospy.get_param("~line_thickness")
         self.view_image = rospy.get_param("~view_image")
+        # self.rate = rospy.Rate(10)
         # Initialize weights 
         weights = rospy.get_param("~weights")
         # Initialize model
@@ -173,7 +174,8 @@ class Yolov5Detector:
             cv2.waitKey(1)  # 1 millisecond
         if self.publish_image:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(im0, "bgr8"))
-        
+
+        # self.rate.sleep()
 
     def preprocess(self, img):
         """

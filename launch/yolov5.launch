@@ -23,7 +23,7 @@
     <arg name="output_topic"            default="/yolov5/detections"/>
 
     <!-- Optional topic (publishing annotated image) -->
-    <arg name="publish_image"           default="false"/>
+    <arg name="publish_image"           default="true"/>
     <arg name="output_image_topic"      default="/yolov5/image_out"/>
 
 

@@ -20,6 +20,8 @@ from camera_lidar_fusion.msg import LidarObjectList
 from filterpy.kalman import KalmanFilter
 import time
 
+VELOCITY_MAX_CNT = 10
+
 class fusion():
     def __init__(self):
         
@@ -36,22 +38,15 @@ class fusion():
         self.min_lidar_x = []
         self.cur_time = 0
         self.time_diff = 0
+        self.velocity_cnt = 1
 
         rospy.init_node('fusion_node', anonymous=False)
         rospy.Subscriber('tracked_boxes', BoundingBoxes, self.camera_object_callback)
-        # rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
+        rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
         rospy.Subscriber('tracked_image', Image, self.visualize)
 
     # 카메라 Bounding Box Callback 함수
     def camera_object_callback(self, data):
-
-        cur_time = time.time()
-
-        self.time_diff = cur_time - self.cur_time
-
-        self.cur_time = cur_time
-        
-        self.start_time = time.time()
 
         self.object_id_point = []
         self.bounding_box_list = data.bounding_boxes
@@ -61,7 +56,7 @@ class fusion():
             self.object_id_point.append([])
             self.min_lidar_x.append(math.inf)
         
-        rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
+        # rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
 
     # 레이더 XYZV Callback 함수
     def lidar_object_callback(self, data):
@@ -101,7 +96,7 @@ class fusion():
     # # Bounding Box 밑변 중점 Z=-0.5 가정하고 2D point -> 3D point Projection
     # def transformation_demo(self):
     #     Rt = np.array([[0.1736, -0.9848, 0], [0, 0, -1], [0.9848, 0.1736, 0]]).T
-        
+
     #     # YOLO detecting 될 때
     #     if len(self.bounding_box_list) != 0:
     #         for bbox in self.bounding_box_list:
@@ -159,7 +154,6 @@ class fusion():
         
         fusion_distance_list.append(self.min_lidar_x[0])
 
-
         for bbox in self.bounding_box_list:
             
             end_time = time.time()
@@ -171,11 +165,15 @@ class fusion():
             
             else:
                 velocity = -3.6*(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1]) / (self.time_diff)
-                # print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
+                
+                if bbox.id == 1:
+                    up_list.append(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
+                    down_list.append(self.time_diff)
+                print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
                 # print("Cycle Time difference : ", end_time - self.start_time)
                 # print("Loop Time difference : ", end_time - self.cur_time)
-                # print("self.time_diff : ", self.time_diff)
-                # print("Velocity : ", velocity)
+                print("self.time_diff : ", self.time_diff)
+                print("Velocity : ", velocity)
                 self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
                 velocity_list.append(velocity)
                 self.risk_calculate(bbox, self.min_lidar_x[bbox.id-1], velocity)
@@ -184,7 +182,6 @@ class fusion():
             print("-------------------------")
 
         print("==============================")
-
 
     def risk_calculate(self, bbox, distance, velocity):
         
@@ -253,12 +250,20 @@ class fusion():
     
     # Image 송출 함수
     def visualize(self, data):
+        self.image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
+
+        # self.start_time = time.time()
+        if self.velocity_cnt == VELOCITY_MAX_CNT:
+            cur_time = time.time()
+            self.time_diff = cur_time - self.cur_time
+            self.cur_time = cur_time
+            self.matching()
+            self.velocity_cnt = 1
+        else:
+            self.velocity_cnt += 1
 
         # self.image = self.bridge.compressed_imgmsg_to_cv2(data, desired_encoding="bgr8")
-        self.image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        
-        self.matching()
-
+    
         cv2.imshow("Display", self.image)
         cv2.waitKey(1)
 
@@ -273,6 +278,8 @@ if __name__ == '__main__':
     fusion_distance_list = []
     velocity_list = []
     crash_list = []
+    up_list = []
+    down_list = []
 
     if not rospy.is_shutdown():
         fusion()
@@ -282,11 +289,14 @@ if __name__ == '__main__':
     # # 결과 CSV 파일로 저장
     os.chdir('/home/heven/CoDeep_ws/src/cm_Camera_LiDAR_Fusion/src/csv/test')
 
-    df = pd.DataFrame({'Fusion': fusion_distance_list})        
-    df.to_csv("distance_fusion_test.csv", index=False)
+    # df = pd.DataFrame({'Fusion': fusion_distance_list})        
+    # df.to_csv("distance_fusion_test.csv", index=False)
 
     df2 = pd.DataFrame({'Velocity' : velocity_list})
     df2.to_csv("velocity_fusion_test.csv", index=False)
+
+    # df3 = pd.DataFrame({'dist_diff' : up_list, 'time_diff' : down_list})
+    # df3.to_csv("Difference_test.csv", index=False)
 
     # # df3 = pd.DataFrame({'Crash time' : crash_list})
     # # df3.to_csv("crash_fusion_result.csv", index=False)

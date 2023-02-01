@@ -133,4 +133,15 @@ class Tracker(object):
             self.tracks[i].trace.append(self.tracks[i].prediction)
             self.tracks[i].KF.lastResult = self.tracks[i].prediction
 
+        un_assigned_tracks = []
+        for i in range(len(assignment)):
+            if assignment[i] != -1:
+                if (cost[i][assignment[i]] > self.dist_threshold):
+                    assignment[i] = -1
+                    un_assigned_tracks.append(i)
+            else:
+                self.tracks[i].skipped_frames +=1
+                self.tracks[i].start_frames -= 1
 
+        un_assigned_detects = []
+        for i in range(len(detections)):

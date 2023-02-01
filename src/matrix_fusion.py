@@ -24,7 +24,7 @@ VELOCITY_MAX_CNT = 10
 
 class fusion():
     def __init__(self):
-        
+
         self.bridge = CvBridge()
         self.fusion_index_list = []
         self.fusion_distance_list = [[], []]
@@ -39,6 +39,7 @@ class fusion():
         self.cur_time = 0
         self.time_diff = 0
         self.velocity_cnt = 1
+        self.dis_vel_list = []
 
         rospy.init_node('fusion_node', anonymous=False)
         rospy.Subscriber('tracked_boxes', BoundingBoxes, self.camera_object_callback)
@@ -54,7 +55,9 @@ class fusion():
 
         for i in range(self.bbox_num):
             self.object_id_point.append([])
+            self.dis_vel_list.append([])
             self.min_lidar_x.append(math.inf)
+            self.angle_thresh
         
         # rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
 
@@ -88,7 +91,7 @@ class fusion():
         x = round(transformed_matrix[0][0])
         y = round(transformed_matrix[1][0])
 
-        cv2.line(self.image, (x,y), (x,y), (0, 255, 0), 3)
+        # cv2.line(self.image, (x,y), (x,y), (0, 255, 0), 3)
 
         return (x,y)
             
@@ -146,7 +149,6 @@ class fusion():
             for bbox in self.bounding_box_list:
                 if self.is_in_bbox(bbox, self.transform(lidar_point)) == True:
                     if lidar_point.x < self.min_lidar_x[bbox.id-1]:
-                        self.object_id_point[bbox.id-1].append(lidar_point)
                         self.min_lidar_x[bbox.id-1] = lidar_point.x
         
         # for min_point in self.min_lidar_x:
@@ -165,18 +167,16 @@ class fusion():
             
             else:
                 velocity = -3.6*(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1]) / (self.time_diff)
-                
+                self.dis_vel_list[bbox.id - 1] = [self.min_lidar_x[bbox.id - 1], velocity]
                 if bbox.id == 1:
-                    up_list.append(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
-                    down_list.append(self.time_diff)
-                print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
+                    velocity_list.append(velocity)
+                # print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
                 # print("Cycle Time difference : ", end_time - self.start_time)
                 # print("Loop Time difference : ", end_time - self.cur_time)
-                print("self.time_diff : ", self.time_diff)
+                # print("self.time_diff : ", self.time_diff)
                 print("Velocity : ", velocity)
                 self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
-                velocity_list.append(velocity)
-                self.risk_calculate(bbox, self.min_lidar_x[bbox.id-1], velocity)
+                # velocity_list.append(velocity)
                 self.cur_time = end_time
             
             print("-------------------------")
@@ -189,9 +189,13 @@ class fusion():
             cv2.rectangle(self.image, (0, 0), (1280, 960), (0,0,255), 50, 1)
         
         else:
-            car_velocity = self.my_speed - velocity
+            car_velocity = self.my_speed + velocity
+
+            print("car velocity : ", car_velocity)
 
             crash_time = distance * 3600 / (1000 * (car_velocity - math.sin(math.radians(85))*self.my_speed))
+
+            print("Crash time : ", crash_time)
 
             crash_list.append(crash_time)
             
@@ -204,15 +208,15 @@ class fusion():
             # Warning
             elif crash_time - lane_change_time < 3.5 and crash_time - lane_change_time >= 2.5:
                 cv2.rectangle(self.image, (0, 0), (1280, 960), (0,130,255), 50, 1)
-                cv2.line(self.image, (390, 745), (int((bbox.xmin + bbox.xmax)/2), bbox.ymax), (0, 130, 255), 5, 1)
-                cv2.line(self.image, (240, 745), (540, 745), (0, 130, 255), 5, 1)
-                cv2.line(self.image, (self.bbox.xmin, self.bbox.ymax), (self.bbox.xmax, self.bbox.ymax), (0, 130, 255), 5, 1)
+                cv2.line(self.image, (1000, 800), (int((bbox.xmin + bbox.xmax)/2), bbox.ymax), (0, 130, 255), 5, 1)
+                cv2.line(self.image, (850, 800), (1150, 800), (0, 130, 255), 5, 1)
+                cv2.line(self.image, (bbox.xmin, bbox.ymax), (bbox.xmax, bbox.ymax), (0, 130, 255), 5, 1)
 
             # Dangerous
             else:
                 cv2.rectangle(self.image, (0, 0), (1280, 960), (0,0,255), 50, 1)
-                cv2.line(self.image, (390, 745), (int((bbox.xmin + bbox.xmax)/2), bbox.ymax), (0, 0, 255), 5, 1)
-                cv2.line(self.image, (240, 745), (540, 745), (0, 0, 255), 5, 1)
+                cv2.line(self.image, (1000, 800), (int((bbox.xmin + bbox.xmax)/2), bbox.ymax), (0, 0, 255), 5, 1)
+                cv2.line(self.image, (850, 800), (1150, 800), (0, 0, 255), 5, 1)
                 cv2.line(self.image, (bbox.xmin, bbox.ymax), (bbox.xmax, bbox.ymax), (0, 0, 255), 5, 1)
     
     def dist_risk_calculate(self, bbox, distance):
@@ -251,7 +255,6 @@ class fusion():
     # Image 송출 함수
     def visualize(self, data):
         self.image = self.bridge.imgmsg_to_cv2(data, desired_encoding="bgr8")
-
         # self.start_time = time.time()
         if self.velocity_cnt == VELOCITY_MAX_CNT:
             cur_time = time.time()
@@ -262,6 +265,9 @@ class fusion():
         else:
             self.velocity_cnt += 1
 
+        for bbox in self.bounding_box_list:
+            if bbox.id == 1:
+                self.risk_calculate(bbox, self.dis_vel_list[bbox.id - 1][0], self.dis_vel_list[bbox.id - 1][1])
         # self.image = self.bridge.compressed_imgmsg_to_cv2(data, desired_encoding="bgr8")
     
         cv2.imshow("Display", self.image)
@@ -298,8 +304,8 @@ if __name__ == '__main__':
     # df3 = pd.DataFrame({'dist_diff' : up_list, 'time_diff' : down_list})
     # df3.to_csv("Difference_test.csv", index=False)
 
-    # # df3 = pd.DataFrame({'Crash time' : crash_list})
-    # # df3.to_csv("crash_fusion_result.csv", index=False)
+    df3 = pd.DataFrame({'Crash time' : crash_list})
+    df3.to_csv("crash_fusion_result.csv", index=False)
 
     # # df4 = pd.DataFrame({'Radar': only_radar_distance_list})
     # # df4.to_csv("only_radar_distance.csv", index=False)

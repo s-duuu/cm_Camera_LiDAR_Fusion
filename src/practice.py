@@ -6,15 +6,8 @@ start = time.time()
 
 a = []
 
-num = 2
+a.append([1, 2])
 
-for i in range(num):
-    a.append(i+1)
+a[0] = [2,3]
 
-
-for element in a:
-    print(a.index(element))
-
-end = time.time()
-
-print(end - start)
+print(a)

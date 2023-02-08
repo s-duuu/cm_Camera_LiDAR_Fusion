@@ -29,6 +29,8 @@ class fusion():
         self.fusion_index_list = []
         self.fusion_distance_list = [[], []]
         self.fusion_velocity_list = [[], []]
+        self.world_point = [[], []]
+        self.fusion_heading_list = [[], []]
         self.lidar_object_list = []
         self.bounding_box_list = []
         self.distance_thresh = 6
@@ -101,67 +103,63 @@ class fusion():
             
 
     # # Bounding Box 밑변 중점 Z=-0.5 가정하고 2D point -> 3D point Projection
-    # def transformation_demo(self):
-    #     Rt = np.array([[0.1736, -0.9848, 0], [0, 0, -1], [0.9848, 0.1736, 0]]).T
+    def world_transform(self, bbox):
+        Rt = np.array([[-0.1736, -0.9848, 0], [0, 0, -1], [0.9848, -0.1736, 0]]).T
 
-    #     # YOLO detecting 될 때
-    #     if len(self.bounding_box_list) != 0:
-    #         for bbox in self.bounding_box_list:
+        x = (bbox.xmin + bbox.xmax) / 2
+        y = bbox.ymax
 
-    #             x = (bbox.xmin + bbox.xmax) / 2
-    #             y = bbox.ymax
+        fx = 640/math.tan(math.radians(25))
+        fy = fx
 
-    #             fx = 640/math.tan(math.radians(25))
-    #             fy = fx
+        u = (x - 640) / fx
+        v = (y - 480) / fy
 
-    #             u = (x - 640) / fx
-    #             v = (y - 480) / fy
+        Pc = np.array([[u], [v], [1]])
 
-    #             Pc = np.array([[u], [v], [1]])
+        t = np.array([[-1.08], [-0.5], [0.368]])
 
-    #             t = np.array([[1.3842], [0.5], [2.0914]])
+        pw = Rt @ (Pc-t)
+        cw = Rt @ (-t)
 
-    #             pw = Rt @ (Pc-t)
-    #             cw = Rt @ (-t)
+        k = (cw[2][0] + 1.5) / (cw[2][0] - pw[2][0])
 
-    #             k = (cw[2][0] + 0.5) / (cw[2][0] - pw[2][0])
+        world_point = cw + k*(pw-cw)
+        
+        x_c = world_point[0][0]
+        y_c = world_point[1][0]
 
-    #             world_point = cw + k*(pw-cw)
-                
-    #             x_c = world_point[0][0]
-    #             y_c = world_point[1][0]
+        world_3d = (x_c, y_c)
 
-    #             camera_object = (x_c, y_c)
-
-    #             self.matching(bbox, camera_object)
-
-    #     # YOLO detecting 끊겼을 때 (radar_risk_calculate 함수 호출)
-    #     else:
-    #         min_x = math.inf
-    #         for radar_object in self.radar_object_list:
-    #             if radar_object.x < min_x:
-    #                 min_x = radar_object.x
-            
-    #         self.radar_risk_calculate(min_x)
+        return world_3d
+    
+    def heading_calc(self, vector):
+        
+        theta = math.degrees(math.acos(-vector[0] / math.sqrt(pow(vector[0], 2) + pow(vector[1], 2))))
+        
+        return theta
+                                       
             
     # 동일 객체 판단 및 최종 거리, 속도 데이터 산출
     def matching(self):
-        # print("# bbox num : ", self.bbox_num)
 
         for lidar_point in self.lidar_object_list:
-            # print(lidar_point.x)
+            
             for bbox in self.bounding_box_list:
+                cur_point = self.world_transform(bbox)
+                
+                if len(self.world_point[bbox.id - 1]) > 1:
+                    vector = np.array([cur_point[0] - self.world_point[bbox.id-1][-1][0], cur_point[1] - self.world_point[bbox.id-1][-1][1]])
+                    self.fusion_heading_list[bbox.id-1].append(self.heading_calc(vector))
+                    self.world_point[bbox.id - 1].append(cur_point)
+                
                 if self.is_in_bbox(bbox, self.transform(lidar_point)) == True:
                     if lidar_point.x < self.min_lidar_x[bbox.id-1]:
                         self.min_lidar_x[bbox.id-1] = lidar_point.x
         
-        # for min_point in self.min_lidar_x:
-            # print("Min point x : ", min_point)
-        
         fusion_distance_list.append(self.min_lidar_x[0])
 
         for bbox in self.bounding_box_list:
-            
 
             if len(self.fusion_distance_list[bbox.id-1]) == 0:
                 self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])

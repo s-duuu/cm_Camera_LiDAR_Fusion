@@ -1,12 +1,12 @@
 import numpy as np
 
-def call_1dkalman(kf, init_v, velocity):
+def call_1dkalman(kf, init_v, dt, velocity):
     
     # Initial value
     kf.x = np.array([[0], [init_v]])
 
     # Mathematical system modeling
-    kf.F = np.array([[1, 1/30],
+    kf.F = np.array([[1, dt],
                 [0, 1]])
 
     kf.H = np.array([[0., 1.]])
@@ -24,11 +24,11 @@ def call_1dkalman(kf, init_v, velocity):
 
     return kf.x[1][0]
 
-def call_2dkalman(kf, init_d, init_v, distance, velocity):
+def call_2dkalman(kf, dt, init_d, init_v, distance, velocity):
 
     kf.x = np.array([[init_d], [init_v]])
 
-    kf.F = np.array([[1, 1/30],
+    kf.F = np.array([[1, dt],
                 [0, 1]])
     
     kf.H = np.array([[1., 0.], [0., 1.]])
@@ -44,4 +44,4 @@ def call_2dkalman(kf, init_d, init_v, distance, velocity):
     kf.predict(u=None, B=None, F=kf.F, Q=kf.Q)
     kf.update(z, kf.R, kf.H)
 
-    return kf.x
+    return kf.x[1][0]

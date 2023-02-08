@@ -40,6 +40,7 @@ class fusion():
         self.time_diff = 0
         self.velocity_cnt = 1
         self.dis_vel_list = []
+        self.flag = 0
 
         rospy.init_node('fusion_node', anonymous=False)
         rospy.Subscriber('tracked_boxes', BoundingBoxes, self.camera_object_callback)
@@ -48,10 +49,13 @@ class fusion():
 
     # 카메라 Bounding Box Callback 함수
     def camera_object_callback(self, data):
+        if self.flag == 0:
+            self.init_time = time.time()
 
         self.object_id_point = []
         self.bounding_box_list = data.bounding_boxes
         self.bbox_num = len(self.bounding_box_list)
+        self.flag += 1
 
         for i in range(self.bbox_num):
             self.object_id_point.append([])
@@ -158,26 +162,28 @@ class fusion():
 
         for bbox in self.bounding_box_list:
             
-            end_time = time.time()
 
             if len(self.fusion_distance_list[bbox.id-1]) == 0:
                 self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
                 self.dist_risk_calculate(bbox, self.min_lidar_x[bbox.id-1])
-                self.cur_time = end_time
+                if bbox.id == 1:
+                    time_list_d.append(self.cur_time - self.init_time)
             
             else:
                 velocity = -3.6*(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1]) / (self.time_diff)
                 self.dis_vel_list[bbox.id - 1] = [self.min_lidar_x[bbox.id - 1], velocity]
                 if bbox.id == 1:
                     velocity_list.append(velocity)
+                    time_list_v.append(self.cur_time - self.init_time)
+                    time_list_d.append(self.cur_time - self.init_time)
                 # print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
                 # print("Cycle Time difference : ", end_time - self.start_time)
                 # print("Loop Time difference : ", end_time - self.cur_time)
                 # print("self.time_diff : ", self.time_diff)
                 print("Velocity : ", velocity)
                 self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
+                
                 # velocity_list.append(velocity)
-                self.cur_time = end_time
             
             print("-------------------------")
 
@@ -191,11 +197,7 @@ class fusion():
         else:
             car_velocity = self.my_speed + velocity
 
-            print("car velocity : ", car_velocity)
-
             crash_time = distance * 3600 / (1000 * (car_velocity - math.sin(math.radians(85))*self.my_speed))
-
-            print("Crash time : ", crash_time)
 
             crash_list.append(crash_time)
             
@@ -260,6 +262,8 @@ class fusion():
             cur_time = time.time()
             self.time_diff = cur_time - self.cur_time
             self.cur_time = cur_time
+            # time_list_d.append(cur_time - self.init_time)
+            print("Time difference : ", self.time_diff)
             self.matching()
             self.velocity_cnt = 1
         else:
@@ -268,7 +272,6 @@ class fusion():
         for bbox in self.bounding_box_list:
             if bbox.id == 1:
                 self.risk_calculate(bbox, self.dis_vel_list[bbox.id - 1][0], self.dis_vel_list[bbox.id - 1][1])
-        # self.image = self.bridge.compressed_imgmsg_to_cv2(data, desired_encoding="bgr8")
     
         cv2.imshow("Display", self.image)
         cv2.waitKey(1)
@@ -277,7 +280,8 @@ if __name__ == '__main__':
     
     kf = KalmanFilter(dim_x=2, dim_z=1)
 
-    time_list = []
+    time_list_d = []
+    time_list_v = []
     only_camera_distance_list = []
     only_radar_distance_list = []
     # fusion_radar_list = []
@@ -291,14 +295,18 @@ if __name__ == '__main__':
         fusion()
         rospy.spin()
     
+    print("Time list d length : ", len(time_list_d))
+    print("Time list v length : ", len(time_list_v))
+    print("Distance list length : ", len(fusion_distance_list))
+    print("Velocity list length : ", len(velocity_list))
     
     # # 결과 CSV 파일로 저장
     os.chdir('/home/heven/CoDeep_ws/src/cm_Camera_LiDAR_Fusion/src/csv/test')
 
-    # df = pd.DataFrame({'Fusion': fusion_distance_list})        
-    # df.to_csv("distance_fusion_test.csv", index=False)
+    df = pd.DataFrame({'Time' : time_list_d, 'Fusion': fusion_distance_list})        
+    df.to_csv("distance_fusion_test.csv", index=False)
 
-    df2 = pd.DataFrame({'Velocity' : velocity_list})
+    df2 = pd.DataFrame({'Time' : time_list_v, 'Velocity' : velocity_list})
     df2.to_csv("velocity_fusion_test.csv", index=False)
 
     # df3 = pd.DataFrame({'dist_diff' : up_list, 'time_diff' : down_list})

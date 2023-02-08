@@ -15,15 +15,15 @@ after = []
 
 os.chdir('/home/heven/CoDeep_ws/src/cm_Camera_LiDAR_Fusion/src/csv/test')
 
-with open('distance_fusion_test.csv', 'r') as csvfile:
+with open('velocity_fusion_test.csv', 'r') as csvfile:
     lines = csv.reader(csvfile, delimiter=',')
     for row in lines:
-        t.append(float(row[0]))
+        # t.append(float(row[1]))
         # c.append(float(row[2]))
         # r.append(float(row[3]))
-        f.append(float(row[1]))
+        # f.append(float(row[0]))
         # fr.append(float(row[5]))
-        # vel.append(float(row[0]))
+        vel.append(float(row[0]))
 
 csvfile.close()
 
@@ -45,11 +45,11 @@ fig = plt.figure(figsize=(30, 13))
 # plt.plot(time, c, linestyle="--", color = "blue", linewidth = 3)
 # plt.plot(time, r, linestyle="--", color = "orange", linewidth = 3)
 # plt.plot(time, f, linestyle="-", color = "green", linewidth = 5)
-plt.plot(t, f, linestyle="-", color = "green", linewidth = 5)
+# plt.plot(f, linestyle="-", color = "green", linewidth = 5)
 # plt.plot(time, reference, linestyle="-", color = "red", linewidth = 3)
 # plt.plot(time, fr, linestyle="--", color = "black", linewidth = 3)
 # plt.plot(x, crash, linestyle = "-", color = "green", linewidth = 5)
-# plt.plot(x, vel, linestyle="-", color = "green", linewidth = 5)
+plt.plot(vel, linestyle="-", color = "green", linewidth = 5)
 # plt.plot(x, before, linestyle="-", color = "black", linewidth = 3)
 # plt.plot(x, after, linestyle="-", color = "green", linewidth = 5)
 # plt.xlabel("Time [s]", fontsize=20)
@@ -60,8 +60,8 @@ plt.yticks(fontsize=20)
 
 # plt.ylim([-2.5, 2.5])
 # plt.hlines(float(-5/3.6), 0, 747, colors="red", linewidth=3)
-plt.legend(['Fusion'], fontsize= 28)
-# plt.legend(["Velocity"], fontsize=28)
+# plt.legend(['Fusion'], fontsize= 28)
+plt.legend(["Velocity"], fontsize=28)
 # plt.legend(['Crash Time'], fontsize= 28)
 # plt.legend(["Before Kalman Filter", "After Kalman Filter"], fontsize=28)
 # plt.legend(["Crash Time"], fontsize=28)

@@ -26,18 +26,20 @@ class fusion():
     def __init__(self):
 
         self.bridge = CvBridge()
-        self.fusion_index_list = []
-        self.fusion_distance_list = [[], []]
-        self.fusion_velocity_list = [[], []]
-        self.world_point = [[], []]
-        self.fusion_heading_list = [[], []]
+        self.fusion_distance_list = {}
+        self.fusion_velocity_list = {}
+        self.fusion_heading_list = {}
+        self.world_point = {}
+        self.min_lidar_x = {}
+
+
         self.lidar_object_list = []
         self.bounding_box_list = []
         self.distance_thresh = 6
         self.angle_thresh = 30
         self.my_speed = 30
         self.bbox_num = 0
-        self.min_lidar_x = []
+        
         self.cur_time = 0
         self.time_diff = 0
         self.velocity_cnt = 1
@@ -59,11 +61,15 @@ class fusion():
         self.bbox_num = len(self.bounding_box_list)
         self.flag += 1
 
-        for i in range(self.bbox_num):
+        for i in range(1, self.bbox_num+1):
+            
+            self.fusion_distance_list[i].append([])
+            self.fusion_velocity_list[i].append([])
+            self.fusion_heading_list[i].append([])
+            self.world_point[i].append([])
             self.object_id_point.append([])
             self.dis_vel_list.append([])
-            self.min_lidar_x.append(math.inf)
-            self.angle_thresh
+            self.min_lidar_x[i].append(math.inf)
         
         # rospy.Subscriber('lidar_objects', LidarObjectList, self.lidar_object_callback)
 
@@ -148,30 +154,31 @@ class fusion():
             for bbox in self.bounding_box_list:
                 cur_point = self.world_transform(bbox)
                 
-                if len(self.world_point[bbox.id - 1]) > 1:
+                if len(self.world_point[bbox.id]) > 1:
                     vector = np.array([cur_point[0] - self.world_point[bbox.id-1][-1][0], cur_point[1] - self.world_point[bbox.id-1][-1][1]])
-                    self.fusion_heading_list[bbox.id-1].append(self.heading_calc(vector))
-                    self.world_point[bbox.id - 1].append(cur_point)
+                    
+                    self.fusion_heading_list[bbox.id-1].append([self.cur_time, self.heading_calc(vector)])
+                    self.world_point[bbox.id].append([self.cur_time, cur_point])
                 
                 if self.is_in_bbox(bbox, self.transform(lidar_point)) == True:
-                    if lidar_point.x < self.min_lidar_x[bbox.id-1]:
-                        self.min_lidar_x[bbox.id-1] = lidar_point.x
+                    if lidar_point.x < self.min_lidar_x[bbox.id]:
+                        self.min_lidar_x[bbox.id] = lidar_point.x
         
-        fusion_distance_list.append(self.min_lidar_x[0])
+                fusion_distance_list.append([self.cur_time, self.min_lidar_x[1]])
 
         for bbox in self.bounding_box_list:
 
-            if len(self.fusion_distance_list[bbox.id-1]) == 0:
-                self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
-                self.dist_risk_calculate(bbox, self.min_lidar_x[bbox.id-1])
+            if len(self.fusion_distance_list[bbox.id]) == 0:
+                self.fusion_distance_list[bbox.id].append([self.cur_time, self.min_lidar_x[bbox.id]])
+                self.dist_risk_calculate(bbox, self.min_lidar_x[bbox.id])
                 if bbox.id == 1:
                     time_list_d.append(self.cur_time - self.init_time)
             
             else:
-                velocity = -3.6*(self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1]) / (self.time_diff)
-                self.dis_vel_list[bbox.id - 1] = [self.min_lidar_x[bbox.id - 1], velocity]
+                velocity = -3.6*(self.min_lidar_x[bbox.id] - self.fusion_distance_list[bbox.id][-1][1]) / (self.time_diff)
+                self.dis_vel_list[bbox.id - 1] = [self.min_lidar_x[bbox.id], velocity]
                 if bbox.id == 1:
-                    velocity_list.append(velocity)
+                    velocity_list.append([self.cur_time, velocity])
                     time_list_v.append(self.cur_time - self.init_time)
                     time_list_d.append(self.cur_time - self.init_time)
                 # print("Distance difference : ", self.min_lidar_x[bbox.id-1] - self.fusion_distance_list[bbox.id-1][-1])
@@ -179,7 +186,7 @@ class fusion():
                 # print("Loop Time difference : ", end_time - self.cur_time)
                 # print("self.time_diff : ", self.time_diff)
                 print("Velocity : ", velocity)
-                self.fusion_distance_list[bbox.id-1].append(self.min_lidar_x[bbox.id-1])
+                self.fusion_distance_list[bbox.id-1].append([self.cur_time, self.min_lidar_x[bbox.id-1]])
                 
                 # velocity_list.append(velocity)
             
@@ -269,7 +276,7 @@ class fusion():
 
         for bbox in self.bounding_box_list:
             if bbox.id == 1:
-                self.risk_calculate(bbox, self.dis_vel_list[bbox.id - 1][0], self.dis_vel_list[bbox.id - 1][1])
+                self.risk_calculate(bbox, self.fusion_distance_list[bbox.id][-1][1], self.fusion_velocity_list[bbox.id][-1][1])
     
         cv2.imshow("Display", self.image)
         cv2.waitKey(1)

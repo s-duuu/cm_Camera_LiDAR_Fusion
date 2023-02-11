@@ -52,8 +52,7 @@
     </node>
 
     <node pkg="camera_lidar_fusion" name="fusion_node" type="matrix_fusion.py" output="screen"/>
-    <node pkg="camera_lidar_fusion" name="sort" type="tracker.py" output="screen"/> -->
-    <!-- <include file="$(find camera_launch)/launch/d435.launch"/>
+    <node pkg="camera_lidar_fusion" name="sort" type="tracker.py" output="screen"/>
 
 
 </launch>

@@ -23,7 +23,7 @@ from kalman_filter import call_2dkalman
 import time
 
 VELOCITY_MAX_CNT = 10
-HEADING_MAX_CNT = 5
+HEADING_MAX_CNT = 3
 
 class fusion():
     def __init__(self):
@@ -39,6 +39,7 @@ class fusion():
 
         self.lidar_object_list = []
         self.bounding_box_list = []
+        self.average_value = {}
         self.distance_thresh = 6
         self.angle_thresh = 30
         self.my_speed = 8.333333333333
@@ -56,6 +57,7 @@ class fusion():
             self.fusion_velocity_list[i] = []
             self.fusion_heading_list[i] = []
             self.fusion_crash_list[i] = []
+            self.average_value[i] = []
             self.world_point[i] = []
             self.object_id_point = []
             self.dis_vel_list = []
@@ -154,6 +156,14 @@ class fusion():
             
     # 동일 객체 판단 및 최종 거리, 속도 데이터 산출
     def matching(self):
+        x_sum = {}
+        y_sum = {}
+        num = {}
+
+        for i in range(1, 11):
+            x_sum[i] = 0
+            y_sum[i] = 0
+            num[i] = 0
         
         # distance + heading 계산
         for lidar_point in self.lidar_object_list:
@@ -164,10 +174,14 @@ class fusion():
 
                 # min_lidar_x 걸러내는 코드
                 if self.is_in_bbox(bbox, self.transform(lidar_point)) == True:
+                    x_sum[bbox.id] += lidar_point.x
+                    y_sum[bbox.id] += lidar_point.y
+                    num[bbox.id] += 1
                     if lidar_point.x < self.min_lidar_x[bbox.id]:
                         self.min_lidar_x[bbox.id] = lidar_point.x
 
-
+        # average_x = x_sum[1] / num[1]
+        # average_y = y_sum[1] / num[1]
 
         # velocity 계산 + risk_calculate 호출
         for bbox in self.bounding_box_list:
@@ -178,17 +192,30 @@ class fusion():
             
             # heading 계산
             if self.heading_cnt == HEADING_MAX_CNT:
-                self.world_point[bbox.id].append([self.cur_time - self.init_time, cur_point])
-                # print("world_point : ", self.world_point[bbox.id] )
-                if len(self.world_point[bbox.id]) == 1:
-                    pass
-                
-                else:
-                    vector = np.array([cur_point[0] - self.world_point[bbox.id][-2][1][0], cur_point[1] - self.world_point[bbox.id][-2][1][1]])
-                    
-                    print("!!!!Vector!!!! : ", vector)
+                average_x = x_sum[bbox.id] / num[bbox.id]
+                average_y = y_sum[bbox.id] / num[bbox.id]
+                self.average_value[bbox.id].append([average_x, average_y])
 
+                if len(self.average_value[bbox.id]) == 0 or len(self.average_value[bbox.id]) == 1:
+                    pass
+
+                else:
+                    vector = np.array([average_x - self.average_value[bbox.id][-2][0], average_y - self.average_value[bbox.id][-2][1]])
+                    print("Vector : ", vector)
+                    print("Theta : ", self.heading_calc(vector))
                     self.fusion_heading_list[bbox.id].append([self.cur_time - self.init_time, self.heading_calc(vector)])
+
+                # self.world_point[bbox.id].append([self.cur_time - self.init_time, cur_point])
+                # # print("world_point : ", self.world_point[bbox.id] )
+                # if len(self.world_point[bbox.id]) == 1:
+                #     pass
+                
+                # else:
+                #     vector = np.array([cur_point[0] - self.world_point[bbox.id][-2][1][0], cur_point[1] - self.world_point[bbox.id][-2][1][1]])
+                    
+                #     print("!!!!Vector!!!! : ", vector)
+
+                #     self.fusion_heading_list[bbox.id].append([self.cur_time - self.init_time, self.heading_calc(vector)])
 
             if (len(self.fusion_distance_list[bbox.id]) == 0 or len(self.fusion_distance_list[bbox.id]) == 1):
                 # self.fusion_distance_list[bbox.id].append([self.cur_time - self.init_time, self.min_lidar_x[bbox.id]])

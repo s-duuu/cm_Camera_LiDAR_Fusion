@@ -10,6 +10,8 @@ f = []
 fr = []
 crash = []
 vel = []
+filtered_vel = []
+reference = []
 before = []
 after = []
 
@@ -23,7 +25,9 @@ with open('velocity_fusion_test.csv', 'r') as csvfile:
         # r.append(float(row[3]))
         # f.append(float(row[0]))
         # fr.append(float(row[5]))
-        vel.append(float(row[0]))
+        vel.append(float(row[1])*-3.6)
+        filtered_vel.append(float(row[2])*-3.6)
+        reference.append(5)
 
 csvfile.close()
 
@@ -40,7 +44,6 @@ csvfile.close()
 # print(len(r))
 # print(len(f))
 time = np.array(t)
-reference = 46.72 - 1.4 * time
 fig = plt.figure(figsize=(30, 13))
 # plt.plot(time, c, linestyle="--", color = "blue", linewidth = 3)
 # plt.plot(time, r, linestyle="--", color = "orange", linewidth = 3)
@@ -49,7 +52,9 @@ fig = plt.figure(figsize=(30, 13))
 # plt.plot(time, reference, linestyle="-", color = "red", linewidth = 3)
 # plt.plot(time, fr, linestyle="--", color = "black", linewidth = 3)
 # plt.plot(x, crash, linestyle = "-", color = "green", linewidth = 5)
-plt.plot(vel, linestyle="-", color = "green", linewidth = 5)
+plt.plot(vel, linestyle="--", color = "black", linewidth = 4)
+plt.plot(filtered_vel, linestyle="-", color = "blue", linewidth = 4)
+plt.plot(reference, linestyle="--", color = "red", linewidth = 2)
 # plt.plot(x, before, linestyle="-", color = "black", linewidth = 3)
 # plt.plot(x, after, linestyle="-", color = "green", linewidth = 5)
 # plt.xlabel("Time [s]", fontsize=20)

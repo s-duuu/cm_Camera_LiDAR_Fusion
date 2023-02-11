@@ -1,47 +1,23 @@
 import numpy as np
+from filterpy.kalman import KalmanFilter
+from filterpy.common import Q_discrete_white_noise
+from numpy.linalg import inv
 
-def call_1dkalman(kf, init_v, dt, velocity):
-    
-    # Initial value
-    kf.x = np.array([[0], [init_v]])
-
-    # Mathematical system modeling
-    kf.F = np.array([[1, dt],
-                [0, 1]])
-
-    kf.H = np.array([[0., 1.]])
-
-    kf.R = 100000
-
-    kf.P = 100
-
-    kf.Q = 5000
-
-    z = np.array([[velocity]])
-
-    kf.predict(u=None, B=None, F=kf.F, Q=kf.Q)
-    kf.update(z, kf.R, kf.H)
-
-    return kf.x[1][0]
-
-def call_2dkalman(kf, dt, init_d, init_v, distance, velocity):
-
-    kf.x = np.array([[init_d], [init_v]])
+def call_2dkalman(kf, dt, distance, x_i, v_i):
+    kf.x = np.array([[x_i], [v_i]])
 
     kf.F = np.array([[1, dt],
-                [0, 1]])
-    
-    kf.H = np.array([[1., 0.], [0., 1.]])
+                     [0, 1]])
+    kf.H = np.array([[1, 0]])
+    # kf.Q = Q_discrete_white_noise(dim=2, dt=dt, var=10)
+    kf.Q = np.array([[0.6, 0.], [0., 1.5]])
+    kf.R = 1.7
 
-    kf.R = np.array([[1., 0.], [0., 50000]])
-    
-    kf.P = np.array([[1., 0.], [0., 1000000]])
+    # z = np.array([distance, velocity])
+    z = np.array([[distance]])
 
-    kf.Q = np.array([[1., 0.], [0., 1.]])
-
-    z = np.array([[distance], [velocity]])
-
-    kf.predict(u=None, B=None, F=kf.F, Q=kf.Q)
-    kf.update(z, kf.R, kf.H)
-
+    kf.predict()
+    kf.update(z)
+    # kf.predict(u=None, B=None, F=kf.F, Q=kf.Q)+
+    # kf.update(z, kf.R, kf.H)
     return kf.x[1][0]

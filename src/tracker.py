@@ -224,9 +224,9 @@ class Sort(object):
     self.iou_threshold = rospy.get_param("/iou_threshold", 0.3)
 
     if display:
-        img_topic = '/carmaker_vds_client_node/image_raw/compressed'
+        img_topic = '/yolov5/image_out'
         self.display = display
-        self.subimage = rospy.Subscriber(img_topic, CompressedImage, self.imgcallback)
+        self.subimage = rospy.Subscriber(img_topic, Image, self.imgcallback)
         self.pubimage = rospy.Publisher('tracked_image', Image, queue_size=20)
         
 
@@ -248,7 +248,7 @@ class Sort(object):
     temp_image = msg
     if self.display:
         try : 
-            self.img = self.bridge.compressed_imgmsg_to_cv2(temp_image, "bgr8")
+            self.img = self.bridge.imgmsg_to_cv2(temp_image, "bgr8")
         except CvBridgeError as e:
             pass
     self.img_in = 1

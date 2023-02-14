@@ -4,12 +4,14 @@ import os
 import csv
 
 t = []
+ref_t = []
 c = []
 r = []
 f = []
 fr = []
 crash = []
 vel = []
+ref_v = []
 filtered_vel = []
 reference = []
 before = []
@@ -20,7 +22,7 @@ os.chdir('/home/heven/CoDeep_ws/src/cm_Camera_LiDAR_Fusion/src/csv/test')
 with open('velocity_fusion_test.csv', 'r') as csvfile:
     lines = csv.reader(csvfile, delimiter=',')
     for row in lines:
-        # t.append(float(row[1]))
+        t.append(float(row[0]))
         # c.append(float(row[2]))
         # r.append(float(row[3]))
         # f.append(float(row[0]))
@@ -30,6 +32,15 @@ with open('velocity_fusion_test.csv', 'r') as csvfile:
         reference.append(5)
 
 csvfile.close()
+
+with open('velocity_reference.csv', 'r') as csvfile:
+    lines = csv.reader(csvfile, delimiter=',')
+    for row in lines:
+        ref_t.append(float(row[0]))
+        ref_v.append(float(row[1]) * 3.6)
+
+csvfile.close()
+
 
 # with open('1d_kalman_velocity_test.csv', 'r') as csv2:
 #     line = csv.reader(csv2, delimiter=',')
@@ -52,21 +63,22 @@ fig = plt.figure(figsize=(30, 13))
 # plt.plot(time, reference, linestyle="-", color = "red", linewidth = 3)
 # plt.plot(time, fr, linestyle="--", color = "black", linewidth = 3)
 # plt.plot(x, crash, linestyle = "-", color = "green", linewidth = 5)
-plt.plot(vel, linestyle="--", color = "black", linewidth = 4)
-plt.plot(filtered_vel, linestyle="-", color = "blue", linewidth = 4)
-plt.plot(reference, linestyle="--", color = "red", linewidth = 2)
+plt.plot(time, vel, linestyle="-", color = "black", linewidth = 2)
+plt.plot(ref_t, ref_v, linestyle = '--', color = "red", linewidth = 5)
+plt.plot(time, filtered_vel, linestyle="-", color = "blue", linewidth = 4)
+# plt.plot(time, reference, linestyle="--", color = "red", linewidth = 2)
 # plt.plot(x, before, linestyle="-", color = "black", linewidth = 3)
 # plt.plot(x, after, linestyle="-", color = "green", linewidth = 5)
-# plt.xlabel("Time [s]", fontsize=20)
-# plt.ylabel("Distance [m]", fontsize=20)
-# plt.ylabel("Velocity [m/s]", fontsize=20)
+plt.xlabel("Time [s]", fontsize=28)
+plt.ylabel("Velocity [km/h]", fontsize=28)
 plt.xticks(fontsize=20)
 plt.yticks(fontsize=20)
 
-# plt.ylim([-2.5, 2.5])
+plt.xlim([0, 30])
+plt.ylim([2, 14])
 # plt.hlines(float(-5/3.6), 0, 747, colors="red", linewidth=3)
 # plt.legend(['Fusion'], fontsize= 28)
-plt.legend(["Velocity"], fontsize=28)
+plt.legend(["Velocity", "Filtered", "Reference"], fontsize=28)
 # plt.legend(['Crash Time'], fontsize= 28)
 # plt.legend(["Before Kalman Filter", "After Kalman Filter"], fontsize=28)
 # plt.legend(["Crash Time"], fontsize=28)

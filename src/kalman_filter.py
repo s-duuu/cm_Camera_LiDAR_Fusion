@@ -10,8 +10,8 @@ def call_2dkalman(kf, dt, distance, x_i, v_i):
                      [0, 1]])
     kf.H = np.array([[1, 0]])
     # kf.Q = Q_discrete_white_noise(dim=2, dt=dt, var=10)
-    kf.Q = np.array([[0.6, 0.], [0., 1.5]])
-    kf.R = 1.7
+    kf.Q = np.array([[0.6, 0.], [0., 1.75]])
+    kf.R = 1.8
 
     # z = np.array([distance, velocity])
     z = np.array([[distance]])

@@ -203,7 +203,7 @@ class fusion():
                     vector = np.array([average_x - self.average_value[bbox.id][-2][0], average_y - self.average_value[bbox.id][-2][1]])
                     print("Vector : ", vector)
                     print("Theta : ", self.heading_calc(vector))
-                    self.fusion_heading_list[bbox.id].append([self.cur_time - self.init_time, self.heading_calc(vector)])
+                    self.fusion_heading_list[bbox.id].append([self.cur_time - self.init_time, self.heading_calc(vector), self.average_value[bbox.id][-2][0], self.average_value[bbox.id][-2][1]])
 
                 # self.world_point[bbox.id].append([self.cur_time - self.init_time, cur_point])
                 # # print("world_point : ", self.world_point[bbox.id] )
@@ -326,7 +326,7 @@ if __name__ == '__main__':
     # KalmanFilter 선언
     kf = KalmanFilter(dim_x=2, dim_z=1)
     # KF 초깃값
-    kf.x = np.array([[45], [-2.5]])
+    kf.x = np.array([[45], [-1.388888888888]])
     kf.P = np.array([[1., 0.], [0., 5.]])
 
     if not rospy.is_shutdown():

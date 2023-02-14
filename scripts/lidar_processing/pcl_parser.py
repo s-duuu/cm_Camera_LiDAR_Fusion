@@ -16,6 +16,7 @@ class pcl_data_calc():
         rospy.Subscriber('/pointcloud/os1_pc2', PointCloud2, self.pcl_callback)
 
         self.pub = rospy.Publisher('/pointcloud/filtered', PointCloud2, queue_size=1)
+        self.pub_ran = rospy.Publisher('/pointcloud/ransac', PointCloud2, queue_size=1)
         self.lidar_object_pub = rospy.Publisher('lidar_objects', LidarObjectList, queue_size=1)
     
     def pcl_callback(self, data):
@@ -32,8 +33,9 @@ class pcl_data_calc():
             # Removing ground
             _, _, cloud = self.do_ransac_plane_normal_segmentation(cloud, 0.15)
 
+            new_data_2 = pcl_helper.pcl_to_ros(cloud)
             cloud = pcl_helper.XYZRGB_to_XYZ(cloud)
-            
+
             # Clustering
             cloud, indices = self.do_euclidean_clustering(cloud)
             # self.do_euclidean_clustering(cloud)
@@ -62,6 +64,7 @@ class pcl_data_calc():
 
             # Publish filtered LiDAR pointcloud data (sensor_msgs/pointcloud2)
             self.pub.publish(new_data)
+            self.pub_ran.publish(new_data_2)
 
             rospy.loginfo("Filtered Point Published")
         
